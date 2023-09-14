@@ -1,10 +1,10 @@
-const bookM = require('../models/book');
+const { Book } = require('../models/book');
 const errorsHandler = require("../services/errorsHandler");
 
 module.exports = {
 	async index(req, res) {
 		try {
-			const books = await bookM.all();
+			const books = await Book.findAll({});
 
 			return res.json(books);
 		} catch (e) {
@@ -13,7 +13,7 @@ module.exports = {
 	},
 	async show(req, res) {
 		try {
-			const book = await bookM.getOneById(req.params.id);
+			const book = await Book.findByPk(req.params.id);
 
 			return res.json(book);
 		} catch (e) {
@@ -24,7 +24,7 @@ module.exports = {
 		try {
 			const data = req.body;
 
-			await bookM.save({
+			await Book.create({
 				title: data.title,
 				author: data.author,
 				year: data.year,
@@ -40,17 +40,27 @@ module.exports = {
 			const id = req.params.id;
 			const data = req.body;
 
-			let updatedItem = await bookM.update(id, data);
+			let item = await Book.findByPk(id);
+			if (!item)
+				res.json({status: 'error', message: 'Book not found'});
 
-			res.json({status: 'ok', book: updatedItem})
+			for (let key in data) {
+				if (item.dataValues.hasOwnProperty(key)) {
+					item[key] = data[key];
+				}
+			}
+
+			await item.save();
+
+			res.json({status: 'ok', book: item})
 		} catch (e) {
 			errorsHandler.handle(e, res);
 		}
 	},
 	async del(req, res) {
 		try {
-			const id = req.params.id;
-			await bookM.del(id);
+			const book = await Book.findByPk(req.params.id);
+			await book.destroy();
 
 			res.json({status: 'ok'});
 		} catch (e) {
